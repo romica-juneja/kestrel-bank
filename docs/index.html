@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kestrel Bank — architecture diagrams</title>
+    <style>
+      :root { color-scheme: light; }
+      body { margin: 0; font-family: "Segoe UI", sans-serif; background: #f6f8f9; color: #17212b; }
+      header, main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+      h1 { font-size: 1.6rem; margin: 0 0 0.4rem; }
+      p { line-height: 1.5; }
+      article { background: #fff; border: 1px solid #d9e1e7; border-radius: 10px; padding: 1rem 1.25rem 0.5rem; margin: 1rem 0 1.5rem; }
+      h2 { font-size: 1.1rem; margin: 0 0 0.35rem; }
+      .note { color: #52606d; margin-top: 0; }
+      .mermaid { overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Kestrel Bank — architecture diagrams</h1>
+      <p>Open this file in a browser. The source for each picture is in <code>docs/diagrams</code>. The written version is <code>docs/architecture.md</code>.</p>
+    </header>
+    <main>
+      <article>
+        <h2>1. Runtime</h2>
+        <p class="note">The browser talks only to Vite. Vite proxies /api to Express. Express owns SQLite. ChatGPT or Claude is called only when a key is set.</p>
+        <pre class="mermaid">
+flowchart LR
+  browser["Browser React 19"]
+  vite["Vite :5173"]
+  api["Express :4000"]
+  db[("SQLite")]
+  llm["ChatGPT or Claude"]
+  browser -->|"cookie and pages"| vite
+  vite -->|"proxy /api"| api
+  api --> db
+  api -.->|"only if an API key is set"| llm
+        </pre>
+      </article>
+      <article>
+        <h2>2. Request path</h2>
+        <p class="note">Pages never write SQL. Routes validate with Zod. Services are the only layer that prepares statements.</p>
+        <pre class="mermaid">
+flowchart TB
+  pages["React pages"]
+  apiClient["api/client.ts"]
+  routes["Express routes plus Zod"]
+  services["Services"]
+  sqlite["better-sqlite3 prepared statements"]
+  pages --> apiClient --> routes --> services --> sqlite
+        </pre>
+      </article>
+      <article>
+        <h2>3. Data model</h2>
+        <p class="note">Money is integer cents. One transfer row plus exactly two ledger lines. The clearing account has no customer.</p>
+        <pre class="mermaid">
+erDiagram
+  CUSTOMERS ||--o{ ACCOUNTS : owns
+  CUSTOMERS ||--o{ PAYEES : saves
+  CUSTOMERS ||--o{ TRANSFERS : submits
+  CUSTOMERS ||--o{ SESSIONS : has
+  ACCOUNTS ||--o{ TRANSACTIONS : ledger
+  TRANSFERS ||--|{ TRANSACTIONS : two_lines
+  TRANSFERS }o--|| ACCOUNTS : from_and_to
+  TRANSFERS }o--o| PAYEES : optional_payee
+        </pre>
+      </article>
+      <article>
+        <h2>4. Transfer, exactly once</h2>
+        <p class="note">The idempotency key is checked inside BEGIN IMMEDIATE. The same key replays. A new transfer writes the debit and the credit together.</p>
+        <pre class="mermaid">
+sequenceDiagram
+  participant UI as TransferPage
+  participant API as POST /transfers
+  participant TX as BEGIN IMMEDIATE
+  participant DB as SQLite
+  UI->>API: Idempotency-Key and body
+  API->>TX: executeTransfer
+  TX->>DB: lookup customer plus key
+  alt same key and same hash
+    DB-->>UI: 200 replay, no second movement
+  else new transfer
+    TX->>DB: debit, credit, both balances
+    DB-->>UI: 201
+  end
+        </pre>
+      </article>
+      <article>
+        <h2>5. Where the money goes</h2>
+        <p class="note">Own-account transfers stay inside the customer. A payee payment credits the bank clearing account.</p>
+        <pre class="mermaid">
+flowchart LR
+  subgraph ownTransfer [Own accounts]
+    checking["Checking debit"]
+    savings["Savings credit"]
+    checking --> savings
+  end
+  subgraph payeePay [Saved payee]
+    source["Customer debit"]
+    clearing["Clearing credit"]
+    source --> clearing
+  end
+        </pre>
+      </article>
+      <article>
+        <h2>6. Security on a protected request</h2>
+        <p class="note">Login, logout, and health are public. Every other banking route needs a session, then Zod, then a query scoped by customer id.</p>
+        <pre class="mermaid">
+flowchart TD
+  req["Protected /api request"]
+  helmet["Helmet, 20kb JSON, no-store"]
+  jsonCheck{"Mutation sent as JSON?"}
+  session{"Valid session cookie?"}
+  zod["Zod"]
+  scope["SQL scoped by customer id"]
+  req --> helmet --> jsonCheck
+  jsonCheck -->|no| media["415"]
+  jsonCheck -->|yes| session
+  session -->|no| unauth["401"]
+  session -->|yes| zod --> scope
+        </pre>
+      </article>
+      <article>
+        <h2>7. Assistant</h2>
+        <p class="note">Three read-only tools, bound to the signed-in customer. No tool can move money. If the model call fails, the rules use the same tools.</p>
+        <pre class="mermaid">
+flowchart TB
+  user["Customer question"]
+  loop["Agent loop, max 5 steps"]
+  tools["Read-only tools closed over customer id"]
+  data["Accounts, recent transactions, spending"]
+  rules["Rule fallback if no key or LLM fails"]
+  user --> loop
+  loop --> tools --> data
+  loop -.-> rules
+        </pre>
+      </article>
+      <article>
+        <h2>8. Layer mapping</h2>
+        <p class="note">Routes are the inbound edge. Services hold the rules. SQLite, bcrypt, sessions, and the model call are the outside systems.</p>
+        <pre class="mermaid">
+flowchart TB
+  ui["React adapter"]
+  http["Routes and Zod"]
+  appLayer["Services"]
+  rulesNode["Cents, ownership, idempotency, read-only tools"]
+  infra["SQLite, bcrypt, sessions, ChatGPT or Claude"]
+  ui --> http --> appLayer
+  appLayer --> rulesNode
+  appLayer --> infra
+        </pre>
+      </article>
+      <article>
+        <h2>9. Client composition</h2>
+        <p class="note">Auth wraps the layout. Pages and the assistant panel both call api/client.ts.</p>
+        <pre class="mermaid">
+flowchart TB
+  main["main.tsx"]
+  auth["AuthProvider"]
+  app["App routes"]
+  guard["RequireAuth plus Layout"]
+  pages["Accounts, history, transfer, receipt"]
+  panel["AssistantPanel"]
+  api["api/client.ts"]
+  main --> auth --> app --> guard
+  guard --> pages
+  guard --> panel
+  pages --> api
+  panel --> api
+        </pre>
+      </article>
+      <article>
+        <h2>10. Database startup</h2>
+        <p class="note">DATABASE_PATH defaults to memory. The schema is applied, then demo data is seeded only when customers is empty.</p>
+        <pre class="mermaid">
+flowchart LR
+  env["DATABASE_PATH"]
+  open["openDatabase"]
+  schema["SCHEMA_SQL and foreign_keys"]
+  wal["journal_mode WAL"]
+  seed["seed if customers empty"]
+  app["createApp"]
+  env --> open --> schema --> wal --> seed --> app
+        </pre>
+      </article>
+    </main>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+flowchart LR
+  browser["Browser React 19"]
+  vite["Vite :5173"]
+  api["Express :4000"]
+  db[("SQLite")]
+  llm["ChatGPT or Claude"]
+  browser -->|"cookie and pages"| vite
+  vite -->|"proxy /api"| api
+  api --> db
+  api -.->|"only if an API key is set"| llm

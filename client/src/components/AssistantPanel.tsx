@@ -12,8 +12,13 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => inputRef.current?.focus(), []);
-  useEffect(() => endRef.current?.scrollIntoView?.({ block: 'end' }), [turns, pending]);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+  useEffect(() => {
+    // scrollIntoView returns a Promise in current Chrome. An effect must not return that.
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [turns, pending]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);

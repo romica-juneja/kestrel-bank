@@ -14,6 +14,8 @@ export interface AppOptions {
   sessionIdleMinutes?: number;
   anthropicApiKey?: string;
   anthropicModel?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
   fetchImpl?: typeof fetch;
 }
 
@@ -43,6 +45,8 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     bankingRoutes(db, {
       anthropicApiKey: opts.anthropicApiKey ?? config.anthropicApiKey,
       anthropicModel: opts.anthropicModel ?? config.anthropicModel,
+      openaiApiKey: opts.openaiApiKey ?? config.openaiApiKey,
+      openaiModel: opts.openaiModel ?? config.openaiModel,
       fetchImpl: opts.fetchImpl,
     }),
   );

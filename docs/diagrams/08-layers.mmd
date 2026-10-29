@@ -1,0 +1,9 @@
+flowchart TB
+  ui["React adapter"]
+  http["Routes and Zod"]
+  appLayer["Services"]
+  rulesNode["Cents, ownership, idempotency, read-only tools"]
+  infra["SQLite, bcrypt, sessions, ChatGPT or Claude"]
+  ui --> http --> appLayer
+  appLayer --> rulesNode
+  appLayer --> infra

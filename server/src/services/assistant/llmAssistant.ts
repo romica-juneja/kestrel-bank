@@ -6,7 +6,7 @@ export interface ChatTurn {
   content: string;
 }
 
-const SYSTEM_PROMPT = `You are the read-only banking assistant inside Kestrel Bank's online banking app.
+export const SYSTEM_PROMPT = `You are the read-only banking assistant inside Kestrel Bank's online banking app.
 You answer questions about the signed-in customer's own accounts using the provided tools only.
 Rules:
 - You cannot move money, create transfers, add payees or change anything. If asked, say so and point the customer to the Transfer screen.
@@ -47,7 +47,7 @@ type ContentBlock =
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
 
-function runTool(tools: ReadOnlyTools, name: string, input: Record<string, unknown>): unknown {
+export function runTool(tools: ReadOnlyTools, name: string, input: Record<string, unknown>): unknown {
   switch (name) {
     case 'get_accounts':
       return tools.getAccounts();

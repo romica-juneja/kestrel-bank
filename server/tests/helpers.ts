@@ -7,7 +7,7 @@ export const NOW = new Date('2026-10-15T12:00:00.000Z');
 
 export function setup(opts: AppOptions = {}) {
   const db = openDatabase({ path: ':memory:', now: NOW });
-  const app = createApp(db, { secureCookies: false, anthropicApiKey: '', ...opts });
+  const app = createApp(db, { secureCookies: false, anthropicApiKey: '', openaiApiKey: '', ...opts });
   return { db, app };
 }
 

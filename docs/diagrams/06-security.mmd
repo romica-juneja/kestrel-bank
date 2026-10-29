@@ -1,0 +1,12 @@
+flowchart TD
+  req["Protected /api request"]
+  helmet["Helmet, 20kb JSON, no-store"]
+  jsonCheck{"Mutation sent as JSON?"}
+  session{"Valid session cookie?"}
+  zod["Zod"]
+  scope["SQL scoped by customer id"]
+  req --> helmet --> jsonCheck
+  jsonCheck -->|no| media["415"]
+  jsonCheck -->|yes| session
+  session -->|no| unauth["401"]
+  session -->|yes| zod --> scope

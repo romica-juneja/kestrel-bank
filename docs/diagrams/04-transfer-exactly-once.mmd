@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant UI as TransferPage
+  participant API as POST /transfers
+  participant TX as BEGIN IMMEDIATE
+  participant DB as SQLite
+  UI->>API: Idempotency-Key and body
+  API->>TX: executeTransfer
+  TX->>DB: lookup customer plus key
+  alt same key and same hash
+    DB-->>UI: 200 replay, no second movement
+  else new transfer
+    TX->>DB: debit, credit, both balances
+    DB-->>UI: 201
+  end

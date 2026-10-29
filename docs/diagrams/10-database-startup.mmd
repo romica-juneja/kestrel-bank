@@ -1,0 +1,8 @@
+flowchart LR
+  env["DATABASE_PATH"]
+  open["openDatabase"]
+  schema["SCHEMA_SQL and foreign_keys"]
+  wal["journal_mode WAL"]
+  seed["seed if customers empty"]
+  app["createApp"]
+  env --> open --> schema --> wal --> seed --> app

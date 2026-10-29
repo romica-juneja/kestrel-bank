@@ -54,7 +54,16 @@ const AssistantBody = z.object({
     .default([]),
 });
 
-export function bankingRoutes(db: Db, opts: { anthropicApiKey: string; anthropicModel: string; fetchImpl?: typeof fetch }) {
+export function bankingRoutes(
+  db: Db,
+  opts: {
+    anthropicApiKey: string;
+    anthropicModel: string;
+    openaiApiKey: string;
+    openaiModel: string;
+    fetchImpl?: typeof fetch;
+  },
+) {
   const router = Router();
 
   router.get('/accounts', (_req, res) => {
@@ -106,6 +115,8 @@ export function bankingRoutes(db: Db, opts: { anthropicApiKey: string; anthropic
     const answer = await askAssistant(db, currentCustomerId(res), message, history, {
       apiKey: opts.anthropicApiKey,
       model: opts.anthropicModel,
+      openaiApiKey: opts.openaiApiKey,
+      openaiModel: opts.openaiModel,
       fetchImpl: opts.fetchImpl,
     });
     res.json(answer);

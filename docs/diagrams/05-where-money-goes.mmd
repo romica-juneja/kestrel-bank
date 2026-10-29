@@ -1,0 +1,11 @@
+flowchart LR
+  subgraph ownTransfer [Own accounts]
+    checking["Checking debit"]
+    savings["Savings credit"]
+    checking --> savings
+  end
+  subgraph payeePay [Saved payee]
+    source["Customer debit"]
+    clearing["Clearing credit"]
+    source --> clearing
+  end

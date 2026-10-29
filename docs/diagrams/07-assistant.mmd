@@ -1,0 +1,9 @@
+flowchart TB
+  user["Customer question"]
+  loop["Agent loop, max 5 steps"]
+  tools["Read-only tools closed over customer id"]
+  data["Accounts, recent transactions, spending"]
+  rules["Rule fallback if no key or LLM fails"]
+  user --> loop
+  loop --> tools --> data
+  loop -.-> rules

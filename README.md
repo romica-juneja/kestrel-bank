@@ -21,8 +21,8 @@ Each customer has a checking and a savings account, ~6 months of history and a f
 The database is in memory by default, so every restart gives fresh demo data. To keep data
 between restarts, set `DATABASE_PATH=./bank.db` (see `server/.env.example`).
 
-**AI assistant:** works out of the box with a rule-based responder. To use a real LLM, put
-`ANTHROPIC_API_KEY=...` in `server/.env` and restart.
+**AI assistant:** works out of the box with a rule-based responder. To use ChatGPT, put
+`OPENAI_API_KEY=...` in `server/.env` and restart. `ANTHROPIC_API_KEY` is the fallback when no OpenAI key is set.
 
 ### Tests
 
@@ -40,6 +40,8 @@ with the same key), route protection, and the account history screen (filters fo
 URL, including Back, and not keeping another account's rows on screen).
 
 ## Project layout
+
+Architecture diagrams are in [`docs/`](docs/index.html). Open `docs/index.html` in a browser to see them drawn. The notes are in [`docs/architecture.md`](docs/architecture.md), and each diagram source is in `docs/diagrams/`.
 
 ```
 server/src

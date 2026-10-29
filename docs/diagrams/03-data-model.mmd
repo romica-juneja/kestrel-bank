@@ -1,0 +1,9 @@
+erDiagram
+  CUSTOMERS ||--o{ ACCOUNTS : owns
+  CUSTOMERS ||--o{ PAYEES : saves
+  CUSTOMERS ||--o{ TRANSFERS : submits
+  CUSTOMERS ||--o{ SESSIONS : has
+  ACCOUNTS ||--o{ TRANSACTIONS : ledger
+  TRANSFERS ||--|{ TRANSACTIONS : two_lines
+  TRANSFERS }o--|| ACCOUNTS : from_and_to
+  TRANSFERS }o--o| PAYEES : optional_payee

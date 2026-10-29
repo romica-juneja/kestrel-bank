@@ -1,0 +1,13 @@
+flowchart TB
+  main["main.tsx"]
+  auth["AuthProvider"]
+  app["App routes"]
+  guard["RequireAuth plus Layout"]
+  pages["Accounts, history, transfer, receipt"]
+  panel["AssistantPanel"]
+  api["api/client.ts"]
+  main --> auth --> app --> guard
+  guard --> pages
+  guard --> panel
+  pages --> api
+  panel --> api

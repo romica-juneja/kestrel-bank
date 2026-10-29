@@ -1,0 +1,7 @@
+flowchart TB
+  pages["React pages"]
+  apiClient["api/client.ts"]
+  routes["Express routes plus Zod"]
+  services["Services"]
+  sqlite["better-sqlite3 prepared statements"]
+  pages --> apiClient --> routes --> services --> sqlite
