@@ -41,20 +41,23 @@ URL, including Back, and not keeping another account's rows on screen).
 
 ## Project layout
 
-Architecture diagrams are in [`docs/`](docs/index.html). Open `docs/index.html` in a browser to see them drawn. The notes are in [`docs/architecture.md`](docs/architecture.md), and each diagram source is in `docs/diagrams/`.
+Architecture diagrams are in [`docs/index.html`](docs/index.html). Open that file in a browser to see them drawn. Notes are in [`docs/architecture.md`](docs/architecture.md). Each diagram source is in `docs/diagrams/`.
 
 ```
+docs/                      architecture diagrams
 server/src
-  app.ts                 Express app wiring (security headers, JSON-only mutations, routes, errors)
-  db/                    schema, connection, deterministic seed data
-  auth/                  server-side sessions, login throttling, auth middleware
-  routes/                HTTP layer: request validation (Zod) → services
-  services/              accounts, transactions, payees, transfers, assistant
+  app.ts                   Express app wiring (security headers, JSON-only mutations, routes, errors)
+  db/                      schema, connection, deterministic seed data
+  auth/                    server-side sessions, login throttling, auth middleware
+  routes/                  HTTP layer: request validation (Zod) → services
+  services/                accounts, transactions, payees, transfers
+  services/assistant/      read-only assistant: ChatGPT, Claude, then rules
 client/src
-  api/                   typed fetch client
-  auth/                  auth context + RequireAuth route guard
-  pages/                 sign in, accounts, account history, transfer, transfer result
-  lib/                   formatting, transfer validation, transfer draft + idempotency key
+  api/                     typed fetch client
+  auth/                    auth context + RequireAuth route guard
+  pages/                   sign in, accounts, account history, transfer, transfer result
+  components/              layout, assistant panel, money, notices
+  lib/                     formatting, transfer validation, transfer draft + idempotency key
 ```
 
 ## API
@@ -114,12 +117,13 @@ can't be probed. Full account numbers never leave the server. Helmet security he
 every input, LIKE wildcards escaped in search, and unexpected errors are logged but never
 leaked to the client.
 
-**AI assistant is read-only by construction.** The model (or the rule-based fallback) can only
-call three read tools — accounts, recent transactions, spending by category — which are bound to
-the session's customer id on the server. There is no tool that writes, so the assistant cannot
-move money regardless of what it is asked or what text appears in transaction descriptions; the
-system prompt also tells it to treat tool results as data. If the LLM call fails, it falls back
-to the rule-based answers.
+**AI assistant is read-only by construction.** ChatGPT is used when `OPENAI_API_KEY` is set.
+Claude is used only when that key is empty and `ANTHROPIC_API_KEY` is set. Otherwise a
+rule-based responder answers. All three paths call the same three read tools — accounts, recent
+transactions, spending by category — bound to the session's customer id on the server. There is
+no tool that writes, so the assistant cannot move money regardless of what it is asked or what
+text appears in transaction descriptions. The system prompt tells the model to treat tool
+results as data. If the model call fails, the rules answer from those same tools.
 
 **Why SQLite + Node.** SQLite gives real transactions and constraints with zero setup for
 reviewers (`npm run setup && npm run dev`). better-sqlite3 is synchronous, so a transfer
@@ -172,5 +176,9 @@ test failed:
   account. On the history screen the filter inputs also now follow the query string, including
   after Back. The results already did; the fields did not, so Apply after Back would put the old
   filter back.
+- **Assistant blanked the page.** `AssistantPanel` returned `scrollIntoView()` from an effect.
+  Current Chrome returns a Promise from that call, and React tried to use the Promise as the
+  effect cleanup, which threw `destroy is not a function` and unmounted the whole screen. The
+  effect now scrolls and returns nothing.
 
 Time spent: about 6 hours
